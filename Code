@@ -1,0 +1,85 @@
+
+import random
+import mysql.connector
+
+# Connect to MySQL database
+def connect_db():
+    return mysql.connector.connect(
+        host="localhost",  # Your MySQL server address
+        user="root",  # Your MySQL username
+        password="----",  # Your MySQL password
+        database="restaurant"  # Your database name
+    )
+
+menu = {
+    'Tea': 10,
+    'Coffee': 15,
+    'Aloo Pateez': 20,
+    'Cold Coffee': 40,
+    'Burger': 40,
+    'Pasta': 60,
+    'Pizza': 90
+}
+
+print("**Welcome To Python Restaurant**")
+print("Kindly Select items from Menu:")
+print(", ".join([f"{item}: {price}" for item, price in menu.items()]))
+
+item_count = 0
+order_total = 0
+ordered_items = []
+
+while True:
+    item = input("Enter item you want to select: ").capitalize()
+    if item in menu:
+        print(f"Your item '{item}' is selected.")
+        ordered_items.append(item)  # Keep track of ordered items
+        order_total += menu[item]
+        item_count += 1
+    else:
+        print("Invalid item. Please choose from the menu.")
+        continue  # Ask for another item without breaking the loop
+
+    another_order = input("Do you want to add another item? Yes/No: ").strip().lower()
+    if another_order != 'yes':
+        break  # Exit the loop if the user does not want to add more items
+
+# Client Details
+client_name = input("Enter your name: ")
+contact_number = input("Enter your contact number: ")
+
+# Insert client details into personal_info table
+try:
+    db = connect_db()
+    cursor = db.cursor()
+
+    # Insert client information
+    cursor.execute("INSERT INTO personal_info (client_name, contact_number) VALUES (%s, %s)",
+                   (client_name, contact_number))
+    db.commit()
+
+    # Get the last inserted client ID
+    client_id = cursor.lastrowid
+
+    # Generate a random bill number
+    bill_number = random.randint(1000, 9999)
+
+    # Prepare SQL query for food orders
+    sql = "INSERT INTO food_orders (bill_number, items_ordered, total_amount, client_id) VALUES (%s, %s, %s, %s)"
+    items_ordered_str = ", ".join(ordered_items)  # Convert list to string
+
+    # Execute the query
+    cursor.execute(sql, (bill_number, items_ordered_str, order_total, client_id))
+    db.commit()  # Commit the transaction
+
+    print(f"\nOrder has been successfully placed");#Order has been successfully recorded in the database.
+    print(f"Your name: {client_name}")
+    print(f"Bill Number: {bill_number}")
+    print(f"Order Items: {ordered_items}")
+    print(f"Total Amount: {order_total}")
+except mysql.connector.Error as err:
+    print(f"Error: {err}")
+finally:
+    cursor.close()
+    db.close()
+
